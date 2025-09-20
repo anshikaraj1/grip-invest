@@ -29,6 +29,46 @@ This project demonstrates user authentication (signup/login), protected routes w
 
 ---
 
+### Features
+🔐 Authentication & Users
+Signup, Login with JWT-based authentication
+Password reset (OTP/email)
+AI-powered password strength suggestions
+
+
+📈 Investment Products
+CRUD operations for investment products (admin only)
+Product listing & filtering by type, yield, and risk
+AI-generated product descriptions & recommendations
+
+
+💰 Investments & Portfolio
+Users can invest in available products
+Portfolio dashboard with investments, returns, and insights
+AI-driven portfolio risk distribution analysis
+
+
+📝 Transaction Logs
+API request/response logging
+Filter logs by user ID or email
+AI summarizer for error trends
+
+
+🖥️ Frontend (React/Next.js)
+Responsive & user-friendly UI
+Dashboard with portfolio insights
+Product pages, investment forms, portfolio charts
+Transaction logs table with AI error summarizer
+AI-powered recommendations embedded into UI
+
+
+⚙️ DevOps & Deployment
+Dockerized setup (backend, frontend, MySQL)
+docker-compose.yml for local orchestration
+Health checks (/health endpoint)
+Centralized logging with docker logs
+
+---
 ## 📂 Project Structure
 grip-invest/
 │── backend/ # Express + Prisma backend
