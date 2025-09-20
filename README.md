@@ -1,4 +1,4 @@
-# gripinvest_winter_internship_-Backend-
+# gripinvest_winter_internship_Backend
 
 # Grip Invest - Full Stack Application
 
