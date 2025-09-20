@@ -1,26 +1,85 @@
+version: '3.8'
+
 services:
   mysql:
     image: mysql:8.0
-    restart: always
+    container_name: grip_invest_mysql
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: grip_invest
-      MYSQL_USER: gripuser
-      MYSQL_PASSWORD: grippass
+      MYSQL_USER: grip_user
+      MYSQL_PASSWORD: grip_password
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
+    networks:
+      - grip_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    restart: always
+    container_name: grip_invest_phpmyadmin
+    restart: unless-stopped
     environment:
       PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: rootpassword
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
     ports:
       - "8080:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - grip_network
+
+  backend:
+    build: ./backend
+    container_name: grip_invest_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://grip_user:grip_password@mysql:3306/grip_invest
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - grip_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: grip_invest_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - grip_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  db_data:
+  mysql_data:
 
+networks:
+  grip_network:
+    driver: bridge

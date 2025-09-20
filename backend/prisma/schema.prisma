@@ -3,15 +3,104 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  name     String
-  email    String @unique
-  password String
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  firstName    String   @map("first_name")
+  lastName     String?  @map("last_name")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  riskAppetite RiskLevel @default(MODERATE) @map("risk_appetite")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  investments     Investment[]
+  transactionLogs TransactionLog[]
+  
+  @@map("users")
+}
+
+model InvestmentProduct {
+  id             String      @id @default(uuid())
+  name           String
+  investmentType InvestmentType @map("investment_type")
+  tenureMonths   Int         @map("tenure_months")
+  annualYield    Float       @map("annual_yield")
+  riskLevel      RiskLevel   @map("risk_level")
+  minInvestment  Float       @default(1000.00) @map("min_investment")
+  maxInvestment  Float?      @map("max_investment")
+  description    String?
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  
+  // Relations
+  investments Investment[]
+  
+  @@map("investment_products")
+}
+
+model Investment {
+  id             String      @id @default(uuid())
+  userId         String      @map("user_id")
+  productId      String      @map("product_id")
+  amount         Float
+  investedAt     DateTime    @default(now()) @map("invested_at")
+  status         InvestmentStatus @default(ACTIVE)
+  expectedReturn Float?      @map("expected_return")
+  maturityDate   DateTime?   @map("maturity_date")
+  
+  // Relations
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product InvestmentProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("investments")
+}
+
+model TransactionLog {
+  id           BigInt   @id @default(autoincrement())
+  userId       String?  @map("user_id")
+  email        String?
+  endpoint     String
+  httpMethod   HttpMethod @map("http_method")
+  statusCode   Int      @map("status_code")
+  errorMessage String?  @map("error_message")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+  
+  @@map("transaction_logs")
+}
+
+// Enums
+enum RiskLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum InvestmentType {
+  BOND
+  FD
+  MF
+  ETF
+  OTHER
+}
+
+enum InvestmentStatus {
+  ACTIVE
+  MATURED
+  CANCELLED
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  DELETE
 }
 

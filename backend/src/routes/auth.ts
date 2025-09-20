@@ -9,11 +9,11 @@ const prisma = new PrismaClient();
 
 // ✅ Signup Route
 router.post("/signup", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { firstName, lastName, email, password, riskAppetite } = req.body;
 
   try {
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: "All fields are required." });
+    if (!firstName || !email || !password) {
+      return res.status(400).json({ error: "First name, email, and password are required." });
     }
 
     // Check if user already exists
@@ -27,7 +27,13 @@ router.post("/signup", async (req, res) => {
 
     // Create new user
     const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword },
+      data: { 
+        firstName, 
+        lastName: lastName || null, 
+        email, 
+        passwordHash: hashedPassword,
+        riskAppetite: riskAppetite || 'MODERATE'
+      },
     });
 
     return res.status(201).json({
@@ -50,7 +56,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "User not found" });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       return res.status(400).json({ error: "Invalid password" });
     }
@@ -58,7 +64,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET as string,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
 
     return res.json({ message: "Login successful", token });
@@ -70,10 +76,43 @@ router.post("/login", async (req, res) => {
 
 // ✅ Protected Route (Profile)
 router.get("/profile", authenticateToken, async (req: AuthRequest, res) => {
-  return res.json({
-    message: "This is a protected route",
-    user: req.user,
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user?.userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        riskAppetite: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json({
+      message: "Profile retrieved successfully",
+      user,
+    });
+  } catch (err) {
+    console.error("❌ Profile error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ✅ Logout Route (for client-side token cleanup)
+router.post("/logout", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    // In a more sophisticated setup, you might want to blacklist the token
+    // For now, we'll just return success and let the client handle token removal
+    return res.json({ message: "Logout successful" });
+  } catch (err) {
+    console.error("❌ Logout error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 export default router;
